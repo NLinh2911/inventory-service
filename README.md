@@ -23,16 +23,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 When you're ready, start your application by running:
 `docker compose up --build`
 
-The build of docker containers is based on `docker-compose.yml`, hence, this will create 2 containers for 2 services of our AUTH-SERVICE
+The build of docker containers is based on `docker-compose.yml`, hence, this will create 2 containers for 2 services of our INVENTORY-SERVICE
 
-- auth-db: PostgreSQL database for auth-service
-- auth-service: FastAPI for auth-service
+- inventory-db: PostgreSQL database for inventory-service
+- inventory-service: FastAPI for inventory-service
 
 ### Data Initialization for Sample Data
 Use `docker compose exec` if the container is already running
 ```
 # app.initDB is a script to generate some sample data quickly
-docker compose exec auth-service python -m app.initDB
+docker compose exec inventory-service python -m app.initDB
 ```
 
 ### Clean up

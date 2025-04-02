@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.api # Name of the FastAPI Dockerfile
     container_name: inventory-service
     ports:
-      - 8002:8000 # Maps port 8001 on the host to port 8000 in the container
+      - 8002:8000 # Maps port 8002 on the host to port 8000 in the container
     restart: always # Always restart the container unless stopped manually
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,7 +18,7 @@ services:
     env_file:
       - .env # Load environment variables from .env file
     networks:
-      - public
+      - stox_shared_network # Assigns this service to the shared network
       - private # Assigns this service to the shared network
     depends_on:
       inventory-db:
@@ -54,8 +54,9 @@ volumes:
   inventory_db_data: # Name of the volume for PostgreSQL data
 networks:
   # Defines the Docker network for communication
-  public:
-    driver: bridge # Uses the default bridge network driver
+  stox_shared_network: # shared network so that all services can communicate with each other
+    external: true
+    name: stox_shared_network
   private:
     # Name of the custom network for the services
     driver: bridge # Uses the default bridge network driver

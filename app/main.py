@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.db.base import Base
 from app.db.base import engine
 from app.api.v1 import (
+    auth,
     item_categories,
     items,
     unit_of_measure,
@@ -39,7 +40,7 @@ Base.metadata.create_all(bind=engine)
 def index():
     return {"message": "INVENTORY-SERVICE MICROSERVICE API"}
 
-
+app.include_router(auth.router)
 app.include_router(item_categories.router)
 app.include_router(unit_of_measure.router)
 app.include_router(vendors.router)
