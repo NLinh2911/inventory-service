@@ -62,7 +62,7 @@ def get_access_token(
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
         # Call the AUTH-SERVICE to authenticate the user
-        print(f"Calling AUTH-SERVICE at {auth_service_url} with payload: {payload}")
+        # print(f"Calling AUTH-SERVICE at {auth_service_url} with payload: {payload}")
         response = requests.post(auth_service_url, data=payload, headers=headers)
 
         if response.status_code != 200:
