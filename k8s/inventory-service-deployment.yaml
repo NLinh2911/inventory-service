@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inventory-service
+  template:
+    metadata:
+      labels:
+        app: inventory-service
+    spec:
+      containers:
+      - name: inventory-service
+        image: inventory-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PROJECT_NAME
+          value: "inventory-service"
+        - name: PROJECT_VERSION
+          value: "1.0.0"
+        - name: PROJECT_DESCRIPTION
+          value: "AUTH-SERVICE MICROSERVICE API"
+        - name: JWT_SECRET_KEY
+          value: "8ee981ed217006f730c20d128aa90ed8e5e3d80c373915f7715cbca4a9b79d06"
+        - name: APP_PORT_EXTERNAL
+          value: "8001"
+        - name: POSTGRES_USER
+          value: "inventory_user"
+        - name: POSTGRES_PASSWORD
+          value: "inventory_password"
+        - name: POSTGRES_DB
+          value: "inventory_db"
+        - name: POSTGRES_HOST
+          value: "inventory-db"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_PORT_EXTERNAL
+          value: "5433"
+        - name: AUTH_SERVICE_BASE_URL
+          value: "http://auth-service:8000"
+        - name: INVENTORY_SERVICE_BASE_URL
+          value: "http://inventory-service:8000"
+        - name: ORDER_SERVICE_BASE_URL
+          value: "http://order-service:8000"
+        livenessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 60

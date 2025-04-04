@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: inventory-db
+spec:
+  serviceName: "inventory-db"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-db
+  template:
+    metadata:
+      labels:
+        app: inventory-db
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: inventory-db
+        image: inventory-db:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 999
+          runAsGroup: 999
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "inventory_user"
+        - name: POSTGRES_PASSWORD
+          value: "inventory_password"
+        - name: POSTGRES_DB
+          value: "inventory_db"
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: inventory-db
+        livenessProbe:
+          exec:
+            command:
+            - "pg_isready"
+            - "-U"
+            - "inventory_user" # Hardcoded value from POSTGRES_USER
+            - "-d"
+            - "inventory_db"   # Hardcoded value from POSTGRES_DB
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - "pg_isready"
+            - "-U"
+            - "inventory_user" # Hardcoded value from POSTGRES_USER
+            - "-d"
+            - "inventory_db"   # Hardcoded value from POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: inventory-db
+        persistentVolumeClaim:
+          claimName: inventory-db-pvc

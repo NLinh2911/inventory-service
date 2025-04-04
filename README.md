@@ -1,41 +1,303 @@
-## Building and running the application locally
+# Inventory Service
 
-To run locally, we use `app.db` as a simple local database to test. 
-Some files to verify to ensure correct connection,
-- The property of database configuration `SQLALCHEMY_DATABASE_URL` in `backend\app\core\config.py` is pointing to `"sqlite:///./app.db"` not PostgreSQL. 
+This document provides instructions for building and running the Inventory Service application locally or using Docker.
 
-### Start Backend at localhost:8000 (NO DOCKER)
-Open terminal 
+---
 
-```
-cd backend
-pip install -r requirements.txt # Or if you use VSCode, you can use command palette in VSCode Python: Create Environment to create a virtual environment and install dependencies. 
-alembic revision --autogenerate -m "Initial migration"
-alembic upgrade head
-# Optional: initialize some data
-python -m app.initDB
-# Start the python app locally
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+## FULLY LOCAL: Building and Running the Application Locally
 
-## Building and running the application with DOCKER
+To run the application locally, we use `app.db` as a simple SQLite database for testing purposes. Ensure the following configuration is correct:
 
-When you're ready, start your application by running:
-`docker compose up --build`
+- The `SQLALCHEMY_DATABASE_URL` property in `app/core/config.py` should point to `"sqlite:///./app.db"` instead of PostgreSQL.
 
-The build of docker containers is based on `docker-compose.yml`, hence, this will create 2 containers for 2 services of our INVENTORY-SERVICE
+### Steps to Start the Backend Locally (Without Docker)
 
-- inventory-db: PostgreSQL database for inventory-service
-- inventory-service: FastAPI for inventory-service
+1. Open a terminal and navigate to the `inventory-service` directory:
+
+2. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   > **Tip:** If you're using VSCode, you can use the command palette (`Ctrl+Shift+P`) and select **Python: Create Environment** to create a virtual environment and install dependencies.
+
+3. Generate and apply database migrations:
+   ```bash
+   alembic revision --autogenerate -m "Initial migration"
+   alembic upgrade head
+   ```
+
+4. (Optional) Initialize some sample data:
+   ```bash
+   python -m app.initDB
+   ```
+
+5. Start the application locally:
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
+The backend will now be running at `http://localhost:8000`.
+
+---
+
+## DOCKER: Building and Running the Application with Docker
+
+When you're ready to use Docker, follow these steps:
+
+1. Build and start the application:
+   ```bash
+   docker compose up --build
+   ```
+
+   This will create two containers based on the `docker-compose.yml` file:
+   - **inventory-db**: A PostgreSQL database for the Inventory Service.
+   - **inventory-service**: A FastAPI application for the Inventory Service.
 
 ### Data Initialization for Sample Data
-Use `docker compose exec` if the container is already running
-```
-# app.initDB is a script to generate some sample data quickly
+
+If the containers are already running, you can initialize sample data using the following command:
+```bash
 docker compose exec inventory-service python -m app.initDB
 ```
 
-### Clean up
-- Delete the existing containers, volumes and networks `docker compose down -v `
-- Stop services but keep database/data `docker compose down`
-- Reset environment completely and rebuild images and containers `docker compose down -v && docker compose up --build`
+---
+
+### Cleaning Up
+
+Use the following commands to clean up your environment:
+
+- **Delete existing containers, volumes, and networks**:
+  ```bash
+  docker compose down -v
+  ```
+
+- **Stop services but keep the database and data**:
+  ```bash
+  docker compose down
+  ```
+
+- **Reset the environment completely and rebuild images and containers**:
+  ```bash
+  docker compose down -v && docker compose up --build
+  ```
+
+---
+
+## KUBERNETES: Deploying and Running the Application with Kubernetes
+
+To deploy the Inventory Service using Kubernetes, follow these steps:
+
+### Prerequisites
+
+- Ensure you have `kubectl` installed and configured to interact with your Kubernetes cluster.
+- A running Kubernetes cluster (local or cloud-based). 
+- For local cluster, use **Minikube**, refer to [Minikube Installation](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download) 
+
+```bash
+minikube start
+```
+
+### Steps to build Docker images to be later deployed by Kubernetes (Minikube)
+1. **Use Docker inside Minikube**:
+    ```bash
+    eval $(minikube docker-env)
+    ```
+
+2. **Build Docker images directly in Minikube**: Once set, any Docker images built using the docker command will be built within the Minikube VM.
+    ```bash
+    # Build the inventory-service Docker image:
+    docker build -t inventory-service:latest -f Dockerfile.api .
+    # Build the inventory-db (PostgreSQL) Docker image:
+    docker build -t inventory-db:latest -f Dockerfile.db .
+    # Verify the images are available in Minikube:
+    docker images
+    ```
+---
+
+### Steps to configure directories for a persistent volume holding persistent data of database services
+1. **Create directories for persistent volumes in Minikube**
+    ```bash
+    # Access the Minikube VM
+    minikube ssh
+    # Create the directories for persistent volumes of database services
+    sudo mkdir -p /var/lib/storage/inventory-db
+    ```
+2. **Allow the postgres user to manage the persistent volume - the directory on host machine**
+    ```bash
+    # Ensure correct ownership and permission for the persistent volume (hostPath)
+    sudo chown -R 999:999 /var/lib/storage/inventory-db
+    sudo chmod -R 700 /var/lib/storage/inventory-db
+    ```
+3. **Specify the user in configuration file of k8s**
+    ```yaml
+    # e.g. inventory-db-deployment.yaml
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: inventory-db
+        image: inventory-db:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 999
+          runAsGroup: 999
+    ```
+4. **Verify the user who is running a pod**
+This configuration is well-suited for a database application where security and controlled access to files and processes are critical.
+```bash
+# Example Results
+kubectl exec -it inventory-db-0 -- id
+# uid=999 gid=999(ping) groups=999(ping)
+kubectl exec -it inventory-service-86f7f8fc65-mfgt2 -- id
+# uid=10001(appuser) gid=10001(appuser) groups=10001(appuser),100(users)
+```
+
+---
+
+### Steps to Deploy
+
+1. **Apply Kubernetes Manifests**:
+    Use the provided YAML files in the `k8s` directory to deploy the application:
+    ```bash
+    kubectl apply -f k8s/
+    ```
+    This will deploy the following resources:
+    - A PostgreSQL database as a `StatefulSet`.
+    - The Inventory Service application as a `Deployment`.
+    - Services to expose the database and application.
+
+2. **Verify the Deployment**:
+    Check the status of the pods:
+    ```bash
+    kubectl get pods
+    ```
+    Check the status of the services:
+    ```bash
+    kubectl get services
+    ```
+3. **Access the Application**:
+    If a `NodePort` service is configured, you can access the application using the IP address of any node in the cluster and the assigned NodePort. For example:
+
+    ```
+    http://<node-ip>:<node-port>
+    ```
+
+    Replace `<node-ip>` with the IP address of a cluster node and `<node-port>` with the port number assigned to the service.
+
+    There are 2 ways to find the exposed URL.
+    - Get the url directly returned by Minikube
+    ```bash
+    minikube service inventory-service --url
+    ```
+    ```bash
+    # URL:
+    http://192.168.49.2:31944
+    ```
+    - Examine the service and nodes
+    ```bash
+    # Get the NodePort
+    kubectl get service inventory-service
+    ```
+    ```txt
+    # Example Output: get the 2nd port in the PORT(S) columne
+        NAME               TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+    inventory-service  NodePort   10.104.79.185   <none>        8001:31944/TCP   10m
+    ```
+    ```bash
+    # Get the Node IP
+    kubectl get nodes -o wide
+    ```
+    ```bash
+    # Example Output: the Internal-IP shows the node IP
+        NAME           STATUS   ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP
+    minikube       Ready    control-plane   10m   v1.26.0   192.168.49.2    <none>
+    ```
+
+
+---
+
+### Data Initialization for Sample Data
+
+To initialize sample data, execute the following command:
+
+```
+kubectl exec -it <inventory-service-pod> -- python -m app.initDB
+```
+
+Replace `<inventory-service-pod>` with the name of the running pod.
+
+---
+
+### Cleaning Up
+
+To stop Kubernetes services, you can delete or scale down the resources associated with the service. Here are the common ways to stop Kubernetes services:
+
+---
+
+#### **1. Delete the Service**
+To completely stop and remove a service, use the `kubectl delete` command:
+
+```bash
+kubectl delete service <service-name> -n <namespace>
+```
+
+Example:
+```bash
+kubectl delete service inventory-service -n default
+```
+
+This will stop the service and remove it from the cluster.
+
+---
+
+#### **2. Scale Down the Deployment**
+If you want to stop the service but keep its configuration, you can scale down the associated deployment or StatefulSet to `0` replicas:
+
+```bash
+kubectl scale deployment <deployment-name> --replicas=0 -n <namespace>
+```
+
+Example:
+```bash
+kubectl scale deployment inventory-service --replicas=0 -n default
+```
+
+This will stop all pods associated with the service, effectively stopping the service without deleting it.
+
+---
+
+#### **3. Delete the Entire Application**
+If the service is part of a larger application (e.g., defined in a YAML manifest), you can delete all associated resources:
+
+```bash
+kubectl delete -f <manifest-file-or-directory>
+```
+
+Example:
+```bash
+kubectl delete -f k8s/
+```
+
+This will delete the service, deployments, StatefulSets, and other resources defined in the manifest.
+
+---
+
+#### **4. Stop Minikube (If Using Minikube)**
+If you're running Kubernetes locally with Minikube, you can stop the entire Minikube cluster:
+
+```bash
+minikube stop
+```
+
+This will stop all services and resources running in the Minikube environment.
+
+---
+
+#### **5. Verify the Service is Stopped**
+After stopping the service, you can verify it is no longer running:
+
+```bash
+kubectl get services -n <namespace>
+```
+
+If the service is stopped, it will no longer appear in the output.
