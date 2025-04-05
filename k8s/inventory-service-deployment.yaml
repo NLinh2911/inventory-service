@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: inventory-service
+  namespace: stox
 spec:
   replicas: 2
   selector:
@@ -12,6 +13,7 @@ spec:
       labels:
         app: inventory-service
     spec:
+      serviceAccountName: inventory-service-account
       containers:
       - name: inventory-service
         image: inventory-service:latest

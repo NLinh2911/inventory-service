@@ -87,7 +87,7 @@ Use the following commands to clean up your environment:
 
 To deploy the Inventory Service using Kubernetes, follow these steps:
 
-### Prerequisites
+## Prerequisites
 
 - Ensure you have `kubectl` installed and configured to interact with your Kubernetes cluster.
 - A running Kubernetes cluster (local or cloud-based). 
@@ -96,6 +96,49 @@ To deploy the Inventory Service using Kubernetes, follow these steps:
 ```bash
 minikube start
 ```
+
+### Set up Kubernetes namespace and necessary environment variables
+1. **Create a Kubernetes namespace**: Using the same namespace for all 3 microservices (auth, inventory and order)
+  ```bash
+  kubectl create namespace stox
+  ```
+
+2. **Set the namespace as the default for your current context**:
+  ```bash
+  kubectl config set-context --current --namespace=stox
+  ```
+3. **Install Sealed Secrets Controller**:
+    If you haven't already installed the Sealed Secrets controller, follow the instructions in the [Sealed Secrets GitHub repository](https://github.com/bitnami-labs/sealed-secrets).
+
+5. **Create a Kubernetes Secret for Database Credentials**:
+    Generate a standard Kubernetes secret file:
+    ```bash
+    kubectl create secret generic inventory-secrets --namespace stox \
+      --from-literal=POSTGRES_USER=$POSTGRES_USER \
+      --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+      --from-literal=POSTGRES_DB=$POSTGRES_DB \
+      --dry-run=client -o yaml > ./k8s/raw-inventory-secret.yaml
+    ```
+
+6. **Encrypt the Secret Using Sealed Secrets**:
+    Use the `kubeseal` command to encrypt the secret:
+    ```bash
+    kubeseal --format=yaml < ./k8s/raw-inventory-secret.yaml > ./k8s/sealed-inventory-secret.yaml
+    ```
+
+    Ensure the `kubeseal` command is configured to use the public key of your Sealed Secrets controller.
+
+7. **Apply the Sealed Secret**:
+    Deploy the sealed secret to your Kubernetes cluster:
+    ```bash
+    kubectl apply -f ./k8s/sealed-inventory-secret.yaml
+    ```
+
+8. **Verify the Sealed Secret is Created**:
+    Check that the sealed secret is successfully created:
+    ```bash
+    kubectl get sealedsecrets
+    ```
 
 ### Steps to build Docker images to be later deployed by Kubernetes (Minikube)
 1. **Use Docker inside Minikube**:

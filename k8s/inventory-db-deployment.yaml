@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: inventory-db
+  namespace: stox
+  labels:
+    app: inventory-db
 spec:
   serviceName: "inventory-db"
   replicas: 1
@@ -13,6 +16,7 @@ spec:
       labels:
         app: inventory-db
     spec:
+      serviceAccountName: inventory-service-account 
       securityContext:
         fsGroup: 999
       containers:
