@@ -50,23 +50,19 @@ spec:
         livenessProbe:
           exec:
             command:
-            - "pg_isready"
-            - "-U"
-            - "inventory_user" # Hardcoded value from POSTGRES_USER
-            - "-d"
-            - "inventory_db"   # Hardcoded value from POSTGRES_DB
-          initialDelaySeconds: 60
-          periodSeconds: 10
+            - "/bin/sh"
+            - "-c"
+            - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+          initialDelaySeconds: 30
+          periodSeconds: 30
         readinessProbe:
           exec:
             command:
-            - "pg_isready"
-            - "-U"
-            - "inventory_user" # Hardcoded value from POSTGRES_USER
-            - "-d"
-            - "inventory_db"   # Hardcoded value from POSTGRES_DB
-          initialDelaySeconds: 10
-          periodSeconds: 5
+            - "/bin/sh"
+            - "-c"
+            - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+          initialDelaySeconds: 30
+          periodSeconds: 30
       volumes:
       - name: inventory-db
         persistentVolumeClaim:
