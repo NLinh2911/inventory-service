@@ -26,11 +26,20 @@ spec:
         - containerPort: 5432
         env:
         - name: POSTGRES_USER
-          value: "inventory_user"
+          valueFrom:
+            secretKeyRef:
+              name: inventory-secrets
+              key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
-          value: "inventory_password"
+          valueFrom:
+            secretKeyRef:
+              name: inventory-secrets
+              key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
-          value: "inventory_db"
+          valueFrom:
+            configMapKeyRef:
+              name: inventory-config
+              key: POSTGRES_DB
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: inventory-db
