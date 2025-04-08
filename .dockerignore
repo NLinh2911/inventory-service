@@ -32,3 +32,16 @@
 **/values.dev.yaml
 LICENSE
 README.md
+# Ignore test-related files and folders
+tests/
+*.pyc
+__pycache__/
+.pytest_cache/
+coverage.xml
+htmlcov/
+.devcontainer/
+.env
+*.db
+*.sqlite
+.vscode/
+.DS_Stor

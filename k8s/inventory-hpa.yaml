@@ -16,4 +16,4 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 10 # Target CPU utilization percentage for scaling, leave it low here for testing
+        averageUtilization: 50 # Target CPU utilization percentage for scaling

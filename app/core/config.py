@@ -38,25 +38,28 @@ class Settings(BaseSettings):
 
     # DB Connection for PostgreSQL
     # Use the environment variables for PostgreSQL connection details
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB")
-    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST")  # Default to localhost
-    POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", 5432))  # Convert port to int
-    if not POSTGRES_USER:
-        raise ValueError("Missing POSTGRES_USER environment variable!")
-    if not POSTGRES_DB:
-        raise ValueError("Missing POSTGRES_DB environment variable!")
-    if not POSTGRES_HOST:
-        raise ValueError("Missing POSTGRES_HOST environment variable!")
-    if not POSTGRES_PORT:
-        raise ValueError("Missing POSTGRES_PORT environment variable!")
-    if not POSTGRES_PASSWORD:
-        raise ValueError("Missing POSTGRES_PASSWORD environment variable!")
+    if os.getenv("ENV") != "test":
+        POSTGRES_USER: str = os.getenv("POSTGRES_USER")
+        POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
+        POSTGRES_DB: str = os.getenv("POSTGRES_DB")
+        POSTGRES_HOST: str = os.getenv("POSTGRES_HOST")  # Default to localhost
+        POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", 5432))  # Convert port to int
+        if not POSTGRES_USER:
+            raise ValueError("Missing POSTGRES_USER environment variable!")
+        if not POSTGRES_DB:
+            raise ValueError("Missing POSTGRES_DB environment variable!")
+        if not POSTGRES_HOST:
+            raise ValueError("Missing POSTGRES_HOST environment variable!")
+        if not POSTGRES_PORT:
+            raise ValueError("Missing POSTGRES_PORT environment variable!")
+        if not POSTGRES_PASSWORD:
+            raise ValueError("Missing POSTGRES_PASSWORD environment variable!")
 
     # Create a connection string for PostgreSQL
     @property
     def SQLALCHEMY_DATABASE_URL(self) -> str:
+        if os.getenv("ENV") == "test":
+            return "sqlite:///:memory:"
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # DB Connection for SQLite for local development

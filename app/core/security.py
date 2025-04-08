@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from jose import JWTError, jwt
 from typing import Annotated
 from fastapi import Depends, HTTPException
@@ -15,29 +16,38 @@ security = HTTPBearer()
 
 
 # This function is used to validate the JWT token passed in the request header.
+# Python
 def validate_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    # HTTPAuthorizationCredentials is an object that contains the token and scheme
-    # Extract only the token part
-    authorization_token = credentials.credentials if credentials else None
-
-    if not authorization_token:
+    # Ensure credentials are provided
+    if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
 
+    authorization_token = credentials.credentials
+
     try:
-        # Retrieve details from jwt token payload
+        # Decode the JWT token
         payload = jwt.decode(
             authorization_token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.ALGORITHM],
         )
+
         # Validate the token payload
         username: str = payload.get("username")  # type: ignore
         user_id: int = payload.get("user_id")  # type: ignore
+
+        # Check expiration
+        exp_timestamp = payload.get("exp")
+        if exp_timestamp is None or datetime.fromtimestamp(exp_timestamp, timezone.utc) < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token expired",
+            )
 
         if username is None or user_id is None:
             raise HTTPException(
