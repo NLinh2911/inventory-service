@@ -50,6 +50,9 @@ for IMAGE in "${IMAGES[@]}"; do
   echo "🗑️ Removing GHCR images from local Docker"
   docker rmi ghcr.io/$GHCR_USER/inventory-service:$IMAGE_TAG || true
   docker rmi ghcr.io/$GHCR_USER/inventory-db:$IMAGE_TAG || true
+  # Clean up dangling images
+  echo "🧹 Cleaning up unused Docker images..."
+  docker image prune -a -f
 
   echo
 done
